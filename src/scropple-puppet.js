@@ -1,6 +1,7 @@
 const path = require('path');
 const puppeteer = require('puppeteer');
-const { getScrobblesFromRows, writeJSON } = require('./helpers');
+const { getScrobblesFromListeningHistoryTable } = require('./page-functions');
+const { getScrobblesFromRows, readJSON, writeJSON } = require('./helpers');
 const libraryUrl = 'https://www.last.fm/user/<username>/library?date_preset=ALL';
 
 class Scropple {
@@ -38,8 +39,14 @@ class Scropple {
     async launch() {
         if (!this.browser) {
             console.log('Launch puppeteer');
+            let headless = true;
+
+            if (this.__config.puppeteer.headless === false) {
+                headless = !headless;
+            }
+
             this.browser = await puppeteer.launch({
-                headless: this.__config.puppeteer.headless || true,
+                headless,
             });
         }
 
@@ -63,11 +70,12 @@ class Scropple {
             await this.launch();
         }
 
-        const page = await this.browser.newPage();
+        console.log('New page');
+        this.page = await this.browser.newPage();
 
-        await page.setRequestInterception(true);
+        await this.page.setRequestInterception(true);
 
-        page.on('request', (request) => {
+        this.page.on('request', (request) => {
             if (request.resourceType() === 'document') {
                 request.continue();
             } else {
@@ -75,22 +83,63 @@ class Scropple {
             }
         });
 
-        page.on('close', (...args) => {
+        this.page.on('close', (...args) => {
             console.log('Close page', ...args);
         });
 
-        return page;
+        return this.page;
     }
 
+    // TODO: rename getLibrary
     async getAllYears() {
-        console.log('New page');
-        const page = await this.newPage();
-        console.log('Post page')
-        await page.goto(this.libraryUrl);
-        const data = await page.$$eval('.scrobble-table .table tbody tr', getScrobblesFromRows);
-        await page.close();
+        await this.newPage();
+        await this.page.goto(this.libraryUrl);
+
+        const data = await this.page.$$eval('.scrobble-table .table tbody tr', getScrobblesFromRows);
+        await this.page.close();
 
         return new Promise((resolve) => resolve(data));
+    }
+
+    async scrapePage(year) {
+        console.log('Get listening history from:', year.url);
+        await this.page.goto(year.url);
+        const items = await this.page.$$eval(this.__config.selectors.scrobble_table_rows, getScrobblesFromListeningHistoryTable);
+        return {
+            ...year,
+            items,
+        };
+    }
+
+    * _makeScrapeListeningHistoryIterator(items) {
+        let count = 0;
+        while (count < items.length) {
+            yield this.scrapePage(items[count]);
+            count++;
+        }
+    }
+
+    // Outputs a JSON file for each year with URLs to each month
+    async getYears() {
+        const { items } = await this.readLibrary();
+
+        await this.newPage();
+
+        const generator = this._makeScrapeListeningHistoryIterator(items);
+
+        for await (let result of generator) {
+            const date = new Date(result.date);
+            const year = date.getFullYear().toString();
+            const outputData = {
+                created_at: new Date().toJSON(),
+                items: result.items,
+            };
+            const outputPath = path.resolve(__dirname, '..', 'data', this.username, `${year}.json`);
+
+            await writeJSON(outputPath, outputData);
+        }
+
+        await this.page.close();
     }
 
     async save(data) {
@@ -101,6 +150,12 @@ class Scropple {
         };
 
         await writeJSON(filePath, fileData);
+    }
+
+    async readLibrary() {
+        const filePath = path.resolve(__dirname, '..', 'data', this.username, this.__config.library_filename);
+        const data = await readJSON(filePath);
+        return data;
     }
 }
 
