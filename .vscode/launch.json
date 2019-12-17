@@ -1,0 +1,29 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Importer",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "program": "${workspaceFolder}/src/import/index.js",
+            "envFile": "${workspaceFolder}/.env",
+            "args": ["--data=${env:DEBUG_IMPORT_DATA_PATH}"]
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Spotify find tracks",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "program": "${workspaceFolder}/src/spotify/index.js",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}
