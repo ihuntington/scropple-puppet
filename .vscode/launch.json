@@ -23,7 +23,8 @@
                 "<node_internals>/**"
             ],
             "program": "${workspaceFolder}/src/spotify/index.js",
-            "envFile": "${workspaceFolder}/.env"
+            "envFile": "${workspaceFolder}/.env",
+            "args": ["--from=2019-01-05", "--to=2019-01-31"]
         }
     ]
 }

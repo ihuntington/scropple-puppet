@@ -100,12 +100,40 @@ const includeJsonFilter = through2.obj(function (item, enc, next) {
     next();
 });
 
+function delay(ms) {
+    return new Promise((resolve) => {
+        setTimeout(() => {
+            resolve();
+        }, ms);
+    });
+}
+
+function isNil(x) {
+    return x == null;
+}
+
+function zip(a, b) {
+    const zippedArray = [];
+    const length = Math.min(a.length, b.length);
+    let index = 0;
+
+    while (index < length) {
+        zippedArray[index] = [a[index], b[index]];
+        index += 1;
+    }
+
+    return zippedArray;
+}
+
 module.exports = {
+    delay,
     excludeDirFilter,
     excludeFile,
     includeJsonFilter,
+    isNil,
     getScrobblesFromRows,
     getTracksFromChartList,
     readJSON,
     writeJSON,
+    zip,
 };

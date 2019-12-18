@@ -28,6 +28,22 @@ const sql = {
     `,
     insertArtistTrack: `
         INSERT INTO artists_tracks(artist_id, track_id) VALUES($1, $2) RETURNING *
+    `,
+    selectTracksWithoutDurationByDate: `
+        SELECT DISTINCT sc.track_id, ar.name as artist_name, tr.name as track_name FROM scrobbles sc
+        JOIN tracks tr ON tr.id = sc.track_id
+        JOIN artists_tracks artr ON artr.track_id = tr.id
+        JOIN artists ar ON ar.id = artr.artist_id
+        WHERE CAST(sc.played_at AS DATE) BETWEEN $1 AND $2
+        AND tr.duration_ms IS NULL
+        AND tr.spotify_id IS NULL
+    `,
+    selectTracksByDate: ``,
+    updateTrackWithDuration: `
+        UPDATE tracks
+        SET duration_ms = $2, spotify_id = $3
+        WHERE id = $1
+        RETURNING id;
     `
 };
 

@@ -63,9 +63,27 @@ async function addArtistsTracks(artistId, trackId) {
     return artistTrack;
 }
 
+async function getTracksByDateWithoutDuration(fromDate, toDate) {
+    const result = await client.query(sql.selectTracksWithoutDurationByDate, [fromDate, toDate]);
+
+    if (result.rowCount === 0) {
+        return [];
+    }
+
+    return result.rows;
+}
+
+async function updateTrackWithDuration(id, duration, spotifyId) {
+    const result = await client.query(sql.updateTrackWithDuration, [id, duration, spotifyId]);
+
+    return result.rows[0];
+}
+
 module.exports = {
     addArtist,
     addArtistsTracks,
     addScrobble,
-    addTrack
+    addTrack,
+    getTracksByDateWithoutDuration,
+    updateTrackWithDuration,
 };
