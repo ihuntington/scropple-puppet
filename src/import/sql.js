@@ -29,6 +29,9 @@ const sql = {
     insertArtistTrack: `
         INSERT INTO artists_tracks(artist_id, track_id) VALUES($1, $2) RETURNING *
     `,
+    insertTrackAudioFeatures: `
+        INSERT INTO track_audio_features(track_id, acousticness, danceability, energy, instrumentalness, liveness, loudness, speechiness, valence, time_signature, tempo) VALUES %L
+    `,
     selectTracksWithoutDurationByDate: `
         SELECT DISTINCT sc.track_id, ar.name as artist_name, tr.name as track_name FROM scrobbles sc
         JOIN tracks tr ON tr.id = sc.track_id
@@ -38,7 +41,12 @@ const sql = {
         AND tr.duration_ms IS NULL
         AND tr.spotify_id IS NULL
     `,
-    selectTracksByDate: ``,
+    selectTracksWithSpotifyId: `
+        SELECT id, spotify_id, COUNT(*) OVER() as total_count FROM tracks
+        WHERE duration_ms IS NOT NULL
+        AND spotify_id IS NOT NULL
+        LIMIT $1 OFFSET $2
+    `,
     updateTrackWithDuration: `
         UPDATE tracks
         SET duration_ms = $2, spotify_id = $3

@@ -1,4 +1,5 @@
 const { Client } = require('pg');
+const format = require('pg-format');
 const sql = require('./sql');
 
 const client = new Client({
@@ -79,11 +80,38 @@ async function updateTrackWithDuration(id, duration, spotifyId) {
     return result.rows[0];
 }
 
+async function getAllTracksWithSpotifyId(limit = 100, offset = 0) {
+    const result = await client.query(sql.selectTracksWithSpotifyId, [limit, offset]);
+
+    if (result.rowCount === 0) {
+        return {
+            limit,
+            offset,
+            total: 0,
+            rows: [],
+        };
+    }
+
+    return {
+        limit,
+        offset,
+        total: parseInt(result.rows[0].total_count, 10),
+        rows: result.rows.map(({ id, spotify_id }) => ({ id, spotify_id })),
+    };
+}
+
+async function addTrackAudioFeatures(tracks) {
+    const result = await client.query(format(sql.insertTrackAudioFeatures, tracks));
+    return result;
+}
+
 module.exports = {
     addArtist,
     addArtistsTracks,
     addScrobble,
     addTrack,
+    addTrackAudioFeatures,
+    getAllTracksWithSpotifyId,
     getTracksByDateWithoutDuration,
     updateTrackWithDuration,
 };
