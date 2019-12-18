@@ -1,7 +1,7 @@
 const minimist = require('minimist');
-const { isNil, zip } = require('./helpers');
+const { isNil, zip } = require('../helpers');
 const db = require('../import/db');
-const service = require('./service');
+const spotify = require('./service');
 
 function* makeUpdateTracksIterator(items) {
     let count = 0;
@@ -16,7 +16,7 @@ function* makeFindTrackIterator(items) {
     let count = 0;
     while (count < items.length) {
         const item = items[count];
-        yield service.findTrack(item.track_name, item.artist_name);
+        yield spotify.findTrack(item.track_name, item.artist_name);
         count += 1;
     }
 }
@@ -32,7 +32,7 @@ async function start(from, to) {
         process.exit(0);
     }
 
-    await service.getAccessToken();
+    await spotify.getAccessToken();
     const generator = makeFindTrackIterator(tracks);
     let tracksWithDuration = [];
 
@@ -53,7 +53,7 @@ async function start(from, to) {
             duration_ms: fromSpotify.data.duration_ms,
             spotify_id: fromSpotify.data.spotify_id,
         }));
-    const foundTracks = zipped.filter(({ duration_ms, spotify_id }) => !isNil(duration_ms) || !isNil(spotify_id));
+    const foundTracks = zipped.filter(({ spotify_id }) => !isNil(spotify_id));
 
     // This feels wrong but tired and cannot think of another approach here.
     for await (let track of makeUpdateTracksIterator(foundTracks)) {
@@ -78,3 +78,8 @@ if (module === require.main) {
 
     start(from, to);
 }
+
+process.on('unhandledRejection', (err) => {
+    console.log(err.stack);
+    process.exit(1);
+});

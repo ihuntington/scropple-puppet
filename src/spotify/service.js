@@ -114,18 +114,21 @@ function getAudioFeatures(ids) {
     };
 
     return new Promise((resolve, reject) => {
-        request(options, (err, response, body) => {
+        request(options, async (err, response, body) => {
             if (err) {
-                console.log(err);
+                console.log('Error audio features', err);
+                return reject(err);
+            }
+
+            if (response.statusCode === statusCodes.RATE_LIMIT) {
+                console.log('Hit rate limit');
                 return reject();
             }
 
-            // Should check response error codes for rate limiting and handle
-            // what should then happen
+            console.log('Success - Audio features');
+            let json = JSON.parse(body);
 
-            const results = JSON.parse(body);
-
-            resolve(results);
+            return resolve(json.audio_features);
         });
     });
 }

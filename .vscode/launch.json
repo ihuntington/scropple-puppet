@@ -25,6 +25,16 @@
             "program": "${workspaceFolder}/src/spotify/index.js",
             "envFile": "${workspaceFolder}/.env",
             "args": ["--from=2019-01-05", "--to=2019-01-31"]
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Spotify audio features",
+            "skipFiles": [
+                "<node_internals/**"
+            ],
+            "program": "${workspaceFolder}/src/spotify/audio-features.js",
+            "envFile": "${workspaceFolder}/.env"
         }
     ]
 }
