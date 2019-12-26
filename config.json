@@ -1,0 +1,20 @@
+{
+    "username": "BBC6music",
+    "library_url": "https://www.last.fm/user/<username>/library",
+    "library_filename": "library.json",
+    "listening_history_output": "data/listening_history.json",
+    "selectors": {
+        "no_scrobbles": ".page-content .col-main .no-data-message",
+        "scrobble_table_rows": ".scrobble-table .table tbody tr",
+        "chartlist_table_row": ".chartlist-row",
+        "chartlist_name_anchor": ".chartlist-name a",
+        "chartlist_artist_anchor": ".chartlist-artist a",
+        "chartlist_timestamp_span": ".chartlist-timestamp span.title",
+        "pagination_page": ".pagination-page",
+        "pagination_previous_page": ".pagination-previous"
+    },
+    "scrobbles_per_page": 50,
+    "puppeteer": {
+        "headless": false
+    }
+}
