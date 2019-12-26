@@ -1,16 +1,18 @@
 const minimist = require('minimist');
+const pgp = require('pg-promise')();
 const { isNil, zip } = require('../helpers');
 const db = require('../import/db');
-const spotify = require('./service');
+const sql = require('../import/sql');
+const spotify = require('./spotify');
+const connection = pgp({
+    database: 'scrobbles',
+    host: 'localhost',
+    user: 'postgres',
+    password: 'docker',
+    port: 5432,
+});
 
-function* makeUpdateTracksIterator(items) {
-    let count = 0;
-    while (count < items.length) {
-        const item = items[count];
-        yield db.updateTrackWithDuration(item.track_id, item.duration_ms, item.spotify_id);
-        count += 1;
-    }
-}
+let excludeTracks = [];
 
 function* makeFindTrackIterator(items) {
     let count = 0;
@@ -25,47 +27,61 @@ async function start(from, to) {
     const fromDate = new Date(from);
     const toDate = new Date(to);
     const sortedDates = [fromDate, toDate].sort((a, b) => a - b);
-    const tracks = await db.getTracksByDateWithoutDuration(...sortedDates);
+
+    if (excludeTracks.length === 0) {
+        excludeTracks = [-1];
+    }
+
+    const tracks = await connection.any(sql.selectTracksWithoutSpotify, [...sortedDates, excludeTracks]);
 
     if (tracks.length === 0) {
-        console.log('No tracks were played');
+        console.log('No tracks found between %s and %s', sortedDates[0], sortedDates[1]);
         process.exit(0);
     }
 
-    await spotify.getAccessToken();
-    const generator = makeFindTrackIterator(tracks);
+    if (isNil(spotify.accessToken)) {
+        await spotify.getAccessToken();
+    }
+
     let tracksWithDuration = [];
 
     try {
-        for await (let result of generator) {
+        for await (let result of makeFindTrackIterator(tracks)) {
             tracksWithDuration.push(result);
         }
     } catch (err) {
-        console.log('Handle error');
         console.log(err);
     }
 
     const zipped = zip(tracks, tracksWithDuration)
         .map(([original, fromSpotify]) => ({
-            track_id: original.track_id,
+            id: original.track_id,
             artist_name: original.artist_name,
             track_name: original.track_name,
             duration_ms: fromSpotify.data.duration_ms,
             spotify_id: fromSpotify.data.spotify_id,
         }));
     const foundTracks = zipped.filter(({ spotify_id }) => !isNil(spotify_id));
+    const notFound = zipped.filter(({ spotify_id }) => isNil(spotify_id)).map(({ id }) => id);
 
-    // This feels wrong but tired and cannot think of another approach here.
-    for await (let track of makeUpdateTracksIterator(foundTracks)) {
-        console.log('Update track', track);
+    // eslint-disable-next-line require-atomic-updates
+    excludeTracks = excludeTracks.concat(notFound);
+
+    if (foundTracks.length === 0) {
+        console.log('No matching tracks on Spotify');
+        process.exit(1);
     }
 
-    const results = {
-        found: foundTracks.length,
-        not_found: zipped.length - foundTracks.length,
-    };
-    console.table(results);
-    process.exit(0);
+    const tracksSet = new pgp.helpers.ColumnSet(['?id', 'duration_ms', 'spotify_id'], { table: 'tracks' });
+    const updateQuery = pgp.helpers.update(foundTracks, tracksSet) + ' WHERE v.id = t.id';
+
+    try {
+        await connection.none(updateQuery);
+    } catch (err) {
+        console.log(err);
+    }
+
+    start(from, to);
 }
 
 if (module === require.main) {

@@ -6,8 +6,8 @@ function filterItemsWithAudioFeatures(items) {
     return items.filter((item) => !isNil(item[1]));
 }
 
-async function start(limit = 100, offset = 0) {
-    const result = await db.getAllTracksWithSpotifyId(limit, offset);
+async function start() {
+    const result = await db.getAllTracksWithSpotifyId();
     const totalRecords = result.total;
 
     if (totalRecords === 0) {
@@ -47,9 +47,9 @@ async function start(limit = 100, offset = 0) {
         .then((result) => {
             console.log(`Successfully inserted ${result.rowCount} records into track_audio_features table`);
 
-            if (offset < totalRecords) {
+            if (totalRecords > result.rows.length) {
                 console.log('Get next set of records');
-                return start(limit, offset + limit);
+                return start();
             }
 
             process.exit(0);

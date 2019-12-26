@@ -1,5 +1,4 @@
 const request = require('request');
-const { delay } = require('../helpers');
 const spotifyId = process.env.SPOTIFY_ID;
 const spotifyClient = process.env.SPOTIFY_CLIENT;
 const basicToken = Buffer.from(`${spotifyId}:${spotifyClient}`).toString('base64');
@@ -57,15 +56,14 @@ function findTrack(trackName, artistName) {
     return new Promise((resolve, reject) => {
         request(options, async (err, response, body) => {
             if (err) {
+                console.error(err);
                 return reject();
             }
 
-            // TODO: need to refactor so that this file only does the requests
+            // TODO: Refactor
             if (response.statusCode === statusCodes.RATE_LIMIT) {
-                console.log(`Spotify rate limit exceeded. Retry after ${retryAfter}`);
                 const retryAfter = response.headers['retry-after'];
-
-                await delay(1000 * retryAfter);
+                console.log(`Spotify rate limit exceeded. Retry after ${retryAfter}s.`);
 
                 return reject({
                     status: 'NOT_FOUND',
@@ -73,9 +71,19 @@ function findTrack(trackName, artistName) {
                 });
             }
 
-            const { tracks } = JSON.parse(body);
+            let json;
 
-            if (tracks.items.length === 0) {
+            try {
+                json = JSON.parse(body);
+            } catch (err) {
+                console.log('JSON parse error', options);
+                return reject({
+                    status: 'NOT_FOUND',
+                    data,
+                });
+            }
+
+            if (json.tracks.items && json.tracks.items.length === 0) {
                 console.log(`Not found track ${trackName} by ${artistName}`);
                 return resolve({
                     status: 'NOT_FOUND',
@@ -83,7 +91,7 @@ function findTrack(trackName, artistName) {
                 });
             }
 
-            const topResult = tracks.items[0];
+            const topResult = json.tracks.items[0];
             const artistMatch = topResult.artists.find(a => a.name.toLowerCase() === artistName.toLowerCase());
 
             // There are other scenarions to catch here such as T'Pau example
@@ -132,7 +140,6 @@ function getAudioFeatures(ids) {
         });
     });
 }
-
 
 module.exports = {
     getAccessToken,

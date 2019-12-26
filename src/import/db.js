@@ -64,8 +64,8 @@ async function addArtistsTracks(artistId, trackId) {
     return artistTrack;
 }
 
-async function getTracksByDateWithoutDuration(fromDate, toDate) {
-    const result = await client.query(sql.selectTracksWithoutDurationByDate, [fromDate, toDate]);
+async function getTracksByDateWithoutDuration(fromDate, toDate, limit = 50) {
+    const result = await client.query(sql.selectTracksWithoutDurationByDate, [fromDate, toDate, limit]);
 
     if (result.rowCount === 0) {
         return [];
@@ -105,6 +105,15 @@ async function addTrackAudioFeatures(tracks) {
     return result;
 }
 
+function updateTracksWithDurationAndSpotifyId(tracks) {
+    const iffy = (items) => items.reduce((prev, [id, duration, sid]) => {
+        return [...prev, `(${id}, ${duration}, '${sid}')`];
+    }, []);
+
+    const iffyTracks = iffy(tracks).join(',');
+    return client.query(sql.updateTracksWithDurationAndSpotifyId, [iffyTracks]);
+}
+
 module.exports = {
     addArtist,
     addArtistsTracks,
@@ -114,4 +123,5 @@ module.exports = {
     getAllTracksWithSpotifyId,
     getTracksByDateWithoutDuration,
     updateTrackWithDuration,
+    updateTracksWithDurationAndSpotifyId,
 };
