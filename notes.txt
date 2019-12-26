@@ -1,0 +1,27 @@
+When midway through getting all the days of a month a request timed out. I had
+not been keeping track of which requests had completed. This meant that the script
+would have to start at the beginning of that year whereas if I had the last successful
+request I could continue from there or even try at the end.
+
+have scrobbles per day, so scraping should return the same number
+
+.chartlist-row
+
+.chartlist.name a
+ [href]
+ textContent
+
+.chartlist-artist a
+ [href]
+ textContent
+
+.chartlist-timestamp span.title
+
+.pagination-list
+ li.pagination-previous
+ li.pagination-page
+  a[href]
+   textContent
+  aria-current="page"
+    span
+      textContent
