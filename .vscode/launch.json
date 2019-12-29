@@ -24,7 +24,7 @@
             ],
             "program": "${workspaceFolder}/src/spotify/index.js",
             "envFile": "${workspaceFolder}/.env",
-            "args": ["--from=2019-01-05", "--to=2019-01-31"]
+            "args": ["--from=2019-06-01", "--to=2019-06-30"]
         },
         {
             "type": "node",
@@ -34,6 +34,16 @@
                 "<node_internals/**"
             ],
             "program": "${workspaceFolder}/src/spotify/audio-features.js",
+            "envFile": "${workspaceFolder}/.env"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "TEST",
+            "skipFiles": [
+                "<node_internals/**"
+            ],
+            "program": "${workspaceFolder}/src/spotify/track-duration.js",
             "envFile": "${workspaceFolder}/.env"
         }
     ]
