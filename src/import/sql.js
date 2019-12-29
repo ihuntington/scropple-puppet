@@ -70,6 +70,14 @@ const sql = {
         FROM (VALUES $1) as tr2(id, duration_ms, spotify_id)
         WHERE tr2.id = tr.id
         RETURNING tr.id
+    `,
+    selectTracksByDate: `
+        SELECT tr.id as track_id, tr.name as track_name, ar.name as artist_name, tr.duration_ms, sc.played_at FROM scrobbles sc
+        JOIN tracks tr ON tr.id = sc.track_id
+        JOIN artists_tracks artr ON artr.track_id = tr.id
+        JOIN artists ar ON ar.id = artr.artist_id
+        WHERE CAST(sc.played_at as DATE) = $1
+        ORDER BY sc.played_at ASC
     `
 };
 
