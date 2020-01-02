@@ -7,13 +7,15 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "Importer",
+            "name": "Import tracks",
             "skipFiles": [
                 "<node_internals>/**"
             ],
             "program": "${workspaceFolder}/src/import/index.js",
             "envFile": "${workspaceFolder}/.env",
-            "args": ["--data=${env:DEBUG_IMPORT_DATA_PATH}"]
+            "windows": {
+                "args": ["--data=./data/BobbyParkhurst/2019/0"]
+            }
         },
         {
             "type": "node",
