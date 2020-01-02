@@ -1,17 +1,20 @@
 const sql = {
-    artistExists: `
-        SELECT id FROM artists
+    selectArtistByName: `
+        SELECT id, name FROM artists
         WHERE name = $1
     `,
     insertArtist: `
-        INSERT INTO artists(name) VALUES($1) RETURNING id
+        INSERT INTO artists(name) VALUES($1) RETURNING id, name
     `,
     trackExists: `
-        SELECT id FROM tracks
-        WHERE name = $1
+        SELECT tr.id AS track_id, tr.name AS track_name, ar.id AS artist_id, ar.name AS artist_name FROM tracks tr
+        JOIN artists_tracks artr ON artr.track_id = tr.id
+        JOIN artists ar ON ar.id = artr.artist_id
+        WHERE tr.name = $1
+        AND ar.name = $2
     `,
     insertTrack: `
-        INSERT INTO tracks(name) VALUES($1) RETURNING id
+        INSERT INTO tracks(name) VALUES($1) RETURNING id, name
     `,
     scrobbleExists: `
         SELECT id FROM scrobbles
@@ -27,7 +30,7 @@ const sql = {
         AND track_id = $2
     `,
     insertArtistTrack: `
-        INSERT INTO artists_tracks(artist_id, track_id) VALUES($1, $2) RETURNING *
+        INSERT INTO artists_tracks(artist_id, track_id) VALUES($1, $2)
     `,
     insertTrackAudioFeatures: `
         INSERT INTO track_audio_features(track_id, acousticness, danceability, energy, instrumentalness, liveness, loudness, speechiness, valence, time_signature, tempo) VALUES %L
@@ -78,6 +81,11 @@ const sql = {
         JOIN artists ar ON ar.id = artr.artist_id
         WHERE CAST(sc.played_at as DATE) = $1
         ORDER BY sc.played_at ASC
+    `,
+    selectExistingScrobble: `
+        SELECT DISTINCT track_id FROM scrobbles
+        WHERE track_id = $1
+        AND played_at = $2
     `
 };
 

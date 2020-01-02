@@ -1,68 +1,14 @@
-const { Client } = require('pg');
-const format = require('pg-format');
+const pgp = require('pg-promise')();
 const sql = require('./sql');
 
-const client = new Client({
-    database: 'scrobbles',
+const client = pgp({
+    database: 'test_import',
     host: 'localhost',
     user: 'postgres',
     password: 'docker',
     port: 5432,
 });
 
-client.connect();
-
-async function addArtist(artist) {
-    let artistId;
-    let result = await client.query(sql.artistExists, [artist]);
-
-    if (result.rowCount === 0) {
-        result = await client.query(sql.insertArtist, [artist]);
-    }
-
-    artistId = result.rows[0].id;
-
-    return artistId;
-}
-
-async function addTrack(track) {
-    let trackId;
-    let result = await client.query(sql.trackExists, [track]);
-
-    if (result.rowCount === 0) {
-        result = await client.query(sql.insertTrack, [track]);
-    }
-
-    trackId = result.rows[0].id;
-
-    return trackId;
-}
-
-async function addScrobble(trackId, timestamp) {
-    let scrobbleId;
-    let result = await client.query(sql.scrobbleExists, [trackId, timestamp]);
-
-    if (result.rowCount === 0) {
-        result = await client.query(sql.insertScrobble, [trackId, timestamp]);
-    }
-
-    scrobbleId = result.rows[0].id;
-
-    return scrobbleId;
-}
-
-async function addArtistsTracks(artistId, trackId) {
-    let artistTrack;
-    let result = await client.query(sql.artistTrackExists, [artistId, trackId]);
-
-    if (result.rowCount === 0) {
-        result = await client.query(sql.insertArtistTrack, [artistId, trackId]);
-    }
-
-    artistTrack = result.rows[0];
-
-    return artistTrack;
-}
 
 async function getTracksByDateWithoutDuration(fromDate, toDate, limit = 50) {
     const result = await client.query(sql.selectTracksWithoutDurationByDate, [fromDate, toDate, limit]);
@@ -80,30 +26,31 @@ async function updateTrackWithDuration(id, duration, spotifyId) {
     return result.rows[0];
 }
 
-async function getAllTracksWithSpotifyId(limit = 100, offset = 0) {
-    const result = await client.query(sql.selectTracksWithSpotifyId, [limit, offset]);
+// TODO: Review / refactor for pg-promise
+// async function getAllTracksWithSpotifyId(limit = 100, offset = 0) {
+//     const result = await client.query(sql.selectTracksWithSpotifyId, [limit, offset]);
 
-    if (result.rowCount === 0) {
-        return {
-            limit,
-            offset,
-            total: 0,
-            rows: [],
-        };
-    }
+//     if (result.rowCount === 0) {
+//         return {
+//             limit,
+//             offset,
+//             total: 0,
+//             rows: [],
+//         };
+//     }
 
-    return {
-        limit,
-        offset,
-        total: parseInt(result.rows[0].total_count, 10),
-        rows: result.rows.map(({ id, spotify_id }) => ({ id, spotify_id })),
-    };
-}
+//     return {
+//         limit,
+//         offset,
+//         total: parseInt(result.rows[0].total_count, 10),
+//         rows: result.rows.map(({ id, spotify_id }) => ({ id, spotify_id })),
+//     };
+// }
 
-async function addTrackAudioFeatures(tracks) {
-    const result = await client.query(format(sql.insertTrackAudioFeatures, tracks));
-    return result;
-}
+// async function addTrackAudioFeatures(tracks) {
+//     const result = await client.query(format(sql.insertTrackAudioFeatures, tracks));
+//     return result;
+// }
 
 function updateTracksWithDurationAndSpotifyId(tracks) {
     const iffy = (items) => items.reduce((prev, [id, duration, sid]) => {
@@ -115,13 +62,10 @@ function updateTracksWithDurationAndSpotifyId(tracks) {
 }
 
 module.exports = {
-    addArtist,
-    addArtistsTracks,
-    addScrobble,
-    addTrack,
-    addTrackAudioFeatures,
-    getAllTracksWithSpotifyId,
+    // addTrackAudioFeatures,
+    // getAllTracksWithSpotifyId,
     getTracksByDateWithoutDuration,
     updateTrackWithDuration,
     updateTracksWithDurationAndSpotifyId,
+    client,
 };
