@@ -43,10 +43,14 @@ node ./src/get-months.js --year=<target-year>
 node ./src/get-months.js --year=<target-year> --month=<target-month>
 ```
 
-5. To get all tracks for a year from months data:
+5. Get all dates by year or by month:
 
 ```
-node ./src/get-tracks-for-day.js --year=<target-year>
+# Get dates by year
+node ./src/get-dates.js --year=<target-year>
+
+# Get dates by month
+node ./src/get-dates.js --year=<target-year> --month=<target-month>
 ```
 
 ## SQL
