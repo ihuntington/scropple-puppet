@@ -1,5 +1,9 @@
 # Scropple puppet
 
+A [last.fm](https://last.fm) scraper using Puppeteer.
+
+I wanted to free my data from Last.fm so I wrote this set of scripts. It could probably be much more efficient in regards to the scraping strategy and perhaps to how the data is stored.
+
 1. Create a `config.json` with a username property:
 
 ```
@@ -8,10 +12,12 @@
 }
 ```
 
-2. To get library:
+2. Get library
+
+This will output a JSON file of scrobbles per year for the history of the user.
 
 ```
-node ./src/years.js
+node ./src/get-library.js
 ```
 
 3. To get months for year(s):
