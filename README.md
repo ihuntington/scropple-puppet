@@ -30,17 +30,17 @@ node ./src/get-years.js
 node ./src/get-years.js --year=<target-year>
 ```
 
-4. Get all days for year(s) and month(s):
+4. Get months
 
 ```
 # Get all months in library
-node ./src/get-days-in-month.js
+node ./src/get-months.js
 
-# Get all months for a specific year
-node ./src/get-days-in-month.js --year=<target-year>
+# Get all months of a year
+node ./src/get-months.js --year=<target-year>
 
-# Get all months for a specific year and month
-node ./src/get-days-in-month.js --year=<target-year> --month=<target-month>
+# Get one month from a year
+node ./src/get-months.js --year=<target-year> --month=<target-month>
 ```
 
 5. To get all tracks for a year from months data:
