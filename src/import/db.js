@@ -2,13 +2,12 @@ const pgp = require('pg-promise')();
 const sql = require('./sql');
 
 const client = pgp({
-    database: 'test_import',
-    host: 'localhost',
-    user: 'postgres',
-    password: 'docker',
-    port: 5432,
+    database: process.env.PG_DATABASE,
+    host: process.env.PG_HOST,
+    user: process.env.PG_USER,
+    password: process.env.PG_PASSWORD,
+    port: process.env.PG_PORT,
 });
-
 
 async function getTracksByDateWithoutDuration(fromDate, toDate, limit = 50) {
     const result = await client.query(sql.selectTracksWithoutDurationByDate, [fromDate, toDate, limit]);

@@ -121,8 +121,6 @@ async function main(files) {
 
     console.log('Successfully imported %s tracks', count);
     console.log('There were %s issues', issues.length);
-
-    process.exit();
 }
 
 function start() {
@@ -148,4 +146,8 @@ function start() {
 
 if (module === require.main) {
     start();
+
+    process.on('unhandledRejection', (err) => {
+        console.log(err);
+    });
 }
