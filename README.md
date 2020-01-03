@@ -2,7 +2,7 @@
 
 A [last.fm](https://last.fm) scraper using Puppeteer.
 
-I wanted to free my data from Last.fm so I wrote this set of scripts. It could be much more efficient in regards to the scraping strategy and perhaps to how the data is stored but it suits my needs for now.
+I wanted to free my data from last.fm so I wrote this set of scripts. It could be much more efficient in regards to the scraping strategy and perhaps to how the data is stored but it suits my needs for now.
 
 1. Create a `config.json` with a username property:
 

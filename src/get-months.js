@@ -1,9 +1,9 @@
 const path = require('path');
-// const minimist = require('minimist');
+const minimist = require('minimist');
 const klaw = require('klaw');
 const config = require('../config.json');
 const Scropple = require('./scropple-puppet');
-const { excludeDirFilter, excludeFile, includeJsonFilter, readJSON } = require('./helpers');
+const { excludeDirFilter, excludeFile, includeJsonFilter, isNil, readJSON } = require('./helpers');
 
 async function* makeScrapePagesIterator(scropple, pages) {
     let count = 0;
@@ -18,19 +18,34 @@ async function* makeScrapePagesIterator(scropple, pages) {
     }
 }
 
-async function* makeReadFilesIterator(scropple, files) {
+async function* makeReadFilesIterator(scropple, files, month) {
     let count = 0;
     while (count < files.length) {
         const fileData = await readJSON(files[count]);
-        const items = fileData.items.filter((item) => item.scrobbles > 0);
+        let items = [];
+
+        if (!isNil(month)) {
+            items = fileData.items.filter((item) => {
+                const date = new Date(item.date);
+                return date.getMonth() === month;
+            });
+        } else {
+            items = fileData.items.filter((item) => item.scrobbles > 0);
+        }
+
+        // TODO: What should happen in this scenario... if anything.
+        // if (items.length === 0) {
+        //     return;
+        // }
+
         yield* makeScrapePagesIterator(scropple, items);
         count++;
     }
 }
 
-async function main(files) {
+async function main(files, targetMonth) {
     const scropple = new Scropple(config);
-    const generator = makeReadFilesIterator(scropple, files);
+    const generator = makeReadFilesIterator(scropple, files, targetMonth);
 
     for await (let result of generator) {
         const date = new Date(result.date);
@@ -47,31 +62,14 @@ async function main(files) {
         await scropple.saveMonth(year.toString(), month.toString(), data);
     }
 
-    console.log('Finished scraping months');
-
     await scropple.exit();
 
-    process.exit(0);
+    console.log('Finished scraping months');
 }
 
-function start() {
-    // const { year, month } = minimist(process.argv);
-    const userPath = path.resolve(__dirname, '..', 'data', config.username);
+function readAllYears() {
+    const dataPath = path.resolve(__dirname, '..', 'data', config.username);
     const files = [];
-
-    let dataPath;
-    // TODO: think how to filter out only desired file and then which generator
-    // to call. A little more complex thant I originally thought hmmm.
-    // if (year) {
-    //     dataPath = path.resolve(userPath, year.toString());
-    // } else if (year && month) {
-    //     dataPath = path.resolve(userPath, year.toString(), month.toString());
-    // } else {
-    //     dataPath = userPath;
-    // }
-
-    // TODO: Just for now get all years e.g. 2006.json, 2007.json
-    dataPath = userPath;
 
     klaw(dataPath, { depthLimit: 1 })
         .pipe(excludeDirFilter)
@@ -85,11 +83,37 @@ function start() {
             }
         })
         .on('end', () => {
-            // console.log(files);
             main(files);
         });
 }
 
+async function readYear(year, month) {
+    const filePath = path.resolve(__dirname, '..', 'data', config.username, `${year}.json`);
+    let targetMonth;
+
+    if (month) {
+        targetMonth = month - 1;
+    }
+
+    main([filePath], targetMonth);
+}
+
+function start(year, month) {
+    if (!year) {
+        readAllYears();
+    } else {
+        readYear(year, month)
+    }
+}
+
+module.exports = start;
+
 if (module === require.main) {
-    start();
+    const { year, month } = minimist(process.argv);
+
+    start(year, month);
+
+    process.on('unhandledRejection', (err) => {
+        console.log(err);
+    });
 }
