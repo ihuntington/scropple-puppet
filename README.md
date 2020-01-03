@@ -20,10 +20,14 @@ This will output a JSON file of scrobbles per year for the history of the user.
 node ./src/get-library.js
 ```
 
-3. To get months for year(s):
+3. Get one or more years from the library
 
 ```
-node ./src/get-months-in-year.js --year=<target-year>
+# All years
+node ./src/get-years.js
+
+# Specific year
+node ./src/get-years.js --year=<target-year>
 ```
 
 4. Get all days for year(s) and month(s):
