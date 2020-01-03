@@ -54,27 +54,38 @@ function getTracksFromChartList(elements) {
     });
 }
 
-function readJSON(filePath) {
-    return new Promise(async (resolve, reject) => {
-        try {
-            const file = await fs.promises.readFile(filePath, { encoding: 'utf-8' });
-            const parsedFile = JSON.parse(file);
-            resolve(parsedFile);
-        } catch (error) {
-            reject(error);
-        }
+async function readJSON(filePath) {
+    let result;
+
+    try {
+        const file = await fs.promises.readFile(filePath, { encoding: 'utf-8' });
+        result = JSON.parse(file);
+    } catch (error) {
+        result = null;
+    }
+
+    return new Promise((resolve) => {
+        resolve(result);
     });
 }
 
-async function writeJSON(filepath, data) {
-    const stringified = JSON.stringify(data, null, 4);
+function writeJSON(filepath, data) {
+    const stringified = JSON.stringify(data);
     const directory = path.dirname(filepath);
 
-    await fs.promises.mkdir(directory, { recursive: true });
-
-    console.log('Write File', filepath);
-    await fs.promises.writeFile(filepath, stringified);
+    return fs.promises.mkdir(directory, { recursive: true })
+        .then(() => {
+            fs.promises.writeFile(filepath, stringified);
+        });
 }
+
+const includeFile = (filename) => through2.obj(function (item, enc, next) {
+    if (path.basename(item.path) === filename) {
+        this.push(item);
+    }
+
+    next();
+});
 
 const excludeFile = (filename) => through2.obj(function (item, enc, next) {
     if (path.basename(item.path) !== filename) {
@@ -129,6 +140,7 @@ module.exports = {
     delay,
     excludeDirFilter,
     excludeFile,
+    includeFile,
     includeJsonFilter,
     isNil,
     getScrobblesFromRows,

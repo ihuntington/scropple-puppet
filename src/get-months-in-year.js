@@ -1,13 +1,14 @@
+const minimist = require('minimist');
 const Scropple = require('./scropple-puppet');
 const config = require('../config.json');
 
 async function start() {
+    const { year } = minimist(process.argv);
     const scropple = new Scropple(config);
 
-    await scropple.getYears();
-    await scropple.exit()
+    await scropple.getYears(year);
+    await scropple.exit();
 
-    console.log('Done');
     process.exit(0);
 }
 

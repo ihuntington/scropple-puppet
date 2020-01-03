@@ -104,6 +104,7 @@ async function start(files) {
 
     for await (let result of generator) {
         if (result.fail.length > 0) {
+            // Bug: fix this
             failedRequests.push(...request.fail);
         }
 
@@ -150,6 +151,7 @@ async function main() {
         .pipe(includeJsonFilter)
         .on('readable', function () {
             let file;
+            // eslint-disable-next-line no-cond-assign
             while (file = this.read()) {
                 files.push(file.path);
             }
@@ -157,32 +159,6 @@ async function main() {
         .on('end', () => {
             start(files);
         });
-
-    // const browser = await puppeteer.launch({ headless: false });
-    // const page = await browser.newPage();
-
-    // await page.setRequestInterception(true);
-
-    // page.on('request', (request) => {
-    //     if (request.resourceType() === 'document') {
-    //         request.continue();
-    //     } else {
-    //         request.abort();
-    //     }
-    // });
-
-    // const results = await scrapePage(page, 'https://www.last.fm/user/BobbyParkhurst/library?from=2019-01-21&rangetype=1day');
-    // const item = {
-    //     "url": "https://www.last.fm/user/BobbyParkhurst/library?from=2019-02-14&rangetype=1day",
-    //     "scrobbles": 105,
-    //     "date": "2019-02-14T00:00:00.000Z"
-    // };
-    // const results = await scrapePage(page, item);
-    // const data = {
-    //     date: results.date,
-    //     pages: [...results.success],
-    // };
-    // await writeJSON('./test-tracks.json', data);
 }
 
 if (module === require.main) {

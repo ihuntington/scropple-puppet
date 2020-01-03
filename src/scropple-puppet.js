@@ -53,14 +53,11 @@ class Scropple {
         return this;
     }
 
-    exit() {
-        return new Promise(async (resolve) => {
-            if (this.browser) {
-                await this.browser.close();
-            }
-
-            resolve();
-        });
+    async exit() {
+        if (this.browser) {
+            console.log('Close puppeteer browser');
+            await this.browser.close();
+        }
     }
 
     // Uncertain if newPage should return a new Promise... but how to do that
@@ -70,7 +67,6 @@ class Scropple {
             await this.launch();
         }
 
-        console.log('New page');
         this.page = await this.browser.newPage();
 
         await this.page.setRequestInterception(true);
@@ -83,11 +79,31 @@ class Scropple {
             }
         });
 
-        this.page.on('close', (...args) => {
-            console.log('Close page', ...args);
-        });
+        // this.page.on('close', (...args) => {
+        //     console.log('Close page', ...args);
+        // });
 
         return this.page;
+    }
+
+    async getListeningHistory(url) {
+        await this.newPage();
+        let result;
+
+        try {
+            console.log('Scrape listening history from %s', url);
+            await this.page.goto(url);
+            // filter out entries with no scrobbles
+            result = await this.page.$$eval('.scrobble-table .table tbody tr', getScrobblesFromRows);
+        } catch (err) {
+            console.log('Unable to scrape page %s', url);
+            console.log(err.stack);
+            result = null;
+        }
+
+        await this.page.close();
+
+        return new Promise((resolve) => resolve(result));
     }
 
     // TODO: rename getLibrary
@@ -120,8 +136,20 @@ class Scropple {
     }
 
     // Outputs a JSON file for each year with URLs to each month
-    async getYears() {
-        const { items } = await this.readLibrary();
+    async getYears(dirtyYear) {
+        let { items } = await this.readLibrary();
+        let targetYear;
+
+        if (dirtyYear) {
+            targetYear = new Date(dirtyYear, 0, 1).getFullYear();
+        }
+
+        if (targetYear) {
+            items = items.filter((item) => {
+                const date = new Date(item.date);
+                return date.getFullYear() === targetYear;
+            });
+        }
 
         await this.newPage();
 
@@ -150,6 +178,17 @@ class Scropple {
         };
 
         await writeJSON(filePath, fileData);
+    }
+
+    async saveMonth(year, month, data) {
+        const filePath = path.resolve(__dirname, '..', 'data', this.username, year, month, 'index.json');
+        try {
+            console.log('Write to file %s', filePath);
+            await writeJSON(filePath, data);
+        } catch (err) {
+            console.log('Unable to write to %s', filePath);
+            console.log(err.stack);
+        }
     }
 
     async readLibrary() {
