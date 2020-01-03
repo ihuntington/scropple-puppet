@@ -1,7 +1,7 @@
 const path = require('path');
 const puppeteer = require('puppeteer');
-const { getScrobblesFromListeningHistoryTable } = require('./page-functions');
-const { getScrobblesFromRows, readJSON, writeJSON } = require('./helpers');
+const { getListeningHistoryScrobbles } = require('./page-functions');
+const { readJSON, writeJSON } = require('./helpers');
 const libraryUrl = 'https://www.last.fm/user/<username>/library?date_preset=ALL';
 
 class Scropple {
@@ -55,7 +55,7 @@ class Scropple {
 
     async exit() {
         if (this.browser) {
-            console.log('Close puppeteer browser');
+            console.log('Exit puppeteer');
             await this.browser.close();
         }
     }
@@ -94,7 +94,7 @@ class Scropple {
             console.log('Scrape listening history from %s', url);
             await this.page.goto(url);
             // filter out entries with no scrobbles
-            result = await this.page.$$eval('.scrobble-table .table tbody tr', getScrobblesFromRows);
+            result = await this.page.$$eval(this.__config.selectors.scrobble_table_rows, getListeningHistoryScrobbles);
         } catch (err) {
             console.log('Unable to scrape page %s', url);
             console.log(err.stack);
@@ -106,21 +106,21 @@ class Scropple {
         return new Promise((resolve) => resolve(result));
     }
 
-    // TODO: rename getLibrary
-    async getAllYears() {
+    async getLibrary() {
         await this.newPage();
         await this.page.goto(this.libraryUrl);
 
-        const data = await this.page.$$eval('.scrobble-table .table tbody tr', getScrobblesFromRows);
+        const data = await this.page.$$eval(this.__config.selectors.scrobble_table_rows, getListeningHistoryScrobbles);
+        await this.saveLibrary(data);
         await this.page.close();
 
-        return new Promise((resolve) => resolve(data));
+        return new Promise((resolve) => resolve());
     }
 
     async scrapePage(year) {
         console.log('Get listening history from:', year.url);
         await this.page.goto(year.url);
-        const items = await this.page.$$eval(this.__config.selectors.scrobble_table_rows, getScrobblesFromListeningHistoryTable);
+        const items = await this.page.$$eval(this.__config.selectors.scrobble_table_rows, getListeningHistoryScrobbles);
         return {
             ...year,
             items,
@@ -178,6 +178,22 @@ class Scropple {
         };
 
         await writeJSON(filePath, fileData);
+    }
+
+    async saveLibrary(data) {
+        const filePath = path.resolve(__dirname, '..', 'data', this.username, this.__config.library_filename);
+        const fileData = {
+            created_at: new Date().toJSON(),
+            items: data,
+        };
+
+        try {
+            console.log('Write to file %s', filePath);
+            await writeJSON(filePath, fileData);
+        } catch (err) {
+            console.log('Unable to write to %s', filePath);
+            console.log(err.stack);
+        }
     }
 
     async saveMonth(year, month, data) {

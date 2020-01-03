@@ -2,29 +2,6 @@ const fs = require('fs');
 const path = require('path');
 const through2 = require('through2');
 
-// TODO: rename function as it is for library history table
-function getScrobblesFromRows(elements) {
-    return new Promise((resolve) => {
-        const data = elements.map((row) => {
-            // `row.cells` is an HTMLCollection so convert to an Array
-            return Array.from(row.cells).map((cell, index) => {
-                if (index === 0) {
-                    return {
-                        url: cell.firstElementChild.href,
-                        date: new Date(parseInt(cell.dataset.timestamp, 10) * 1000).toJSON(),
-                    };
-                }
-
-                return {
-                    scrobbles: parseInt(cell.textContent.trim(), 10)
-                };
-            }).reduce((a, b) => Object.assign(a, b));
-        });
-
-        resolve(data);
-    });
-}
-
 // An idea:
 // Would this be better with a zip approach as could use browser to request the
 // name, artist and timestap individually in three arrays. Then merge those arrays
@@ -143,7 +120,6 @@ module.exports = {
     includeFile,
     includeJsonFilter,
     isNil,
-    getScrobblesFromRows,
     getTracksFromChartList,
     readJSON,
     writeJSON,
