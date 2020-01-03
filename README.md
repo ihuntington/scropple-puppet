@@ -56,3 +56,8 @@ I forgot to consider that different tracks could have the same name and that I s
 For instance:
 
 Kylie Minogue and BADBADNOTGOOD both wrote a track called In Your Eyes. The import script I originally wrote was not check to see if a track name already existed with the same artist. It just checked for existing track names and returned the ID if matched.
+
+## History
+Go back through the git history to view early examples of how I approached the scraping and how messy it was at times. Some files though were documented explaining what happens at each step. This was done so I could demonstrate what was happening to a JavaScript novice to understand, also, helpful for me too.
+
+See `./src/listening-history.js`.
