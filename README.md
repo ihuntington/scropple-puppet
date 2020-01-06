@@ -1,6 +1,6 @@
 # Scropple Puppet
 
-A [last.fm](https://last.fm) scraper using Puppeteer.
+A [last.fm](https://last.fm) scraper using [Puppeteer](https://pptr.dev/).
 
 I wanted to free my data from last.fm so I wrote this set of scripts. It could be much more efficient in regards to the scraping strategy and perhaps to how the data is stored but it suits my needs for now.
 
@@ -53,30 +53,21 @@ node ./src/get-dates.js --year=<target-year>
 node ./src/get-dates.js --year=<target-year> --month=<target-month>
 ```
 
-## SQL
-
-```
-# View activity in PG
-SELECT * FROM pg_stat_activity
-WHERE datname = 'database_name';
-```
-
-## Issues I ran into
-
-### The Kylie problem
-
-I forgot to consider that different tracks could have the same name and that I should check for the track by artist name and track name when importing the track.
-
-For instance:
-
-Kylie Minogue and BADBADNOTGOOD both wrote a track called In Your Eyes. The import script I originally wrote was not check to see if a track name already existed with the same artist. It just checked for existing track names and returned the ID if matched.
+## Todo - add example structure of data folder
 
 ## History
 Go back through the git history to view early examples of how I approached the scraping and how messy it was at times. Some files though were documented explaining what happens at each step. This was done so I could demonstrate what was happening to a JavaScript novice to understand, also, helpful for me too.
 
 See `./src/listening-history.js`.
 
-## Error handling to add
+## Todo
+
+- Add better error handling e.g. timeout, loss of connection
+- Save errors to disk for retry
+- Speed up the scraping by using multiple tabs, do not need to close tab
+- Add tests
+
+### Example errors
 
 ```
 TimeoutError: Navigation Timeout Exceeded: 30000ms exceeded
@@ -84,5 +75,3 @@ TimeoutError: Navigation Timeout Exceeded: 30000ms exceeded
   name: 'TimeoutError'
 }
 ```
-
-Output failed requests in same format JSON so can be retried
