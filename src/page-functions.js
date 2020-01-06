@@ -14,6 +14,25 @@ function getListeningHistoryScrobbles(rows) {
     });
 }
 
+function getTracksFromChartlist(rows) {
+    return rows.map((row) => {
+        const $name = row.querySelector('.chartlist-name a');
+        const $artist = row.querySelector('.chartlist-artist a');
+        const $timestamp = row.querySelector('.chartlist-timestamp span');
+
+        return {
+            name: $name.textContent,
+            url: $name.href,
+            artist: {
+                name: $artist.textContent,
+                url: $artist.href,
+            },
+            timestamp: $timestamp.title,
+        };
+    });
+}
+
 module.exports = {
     getListeningHistoryScrobbles,
+    getTracksFromChartlist
 };

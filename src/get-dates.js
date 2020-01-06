@@ -1,111 +1,37 @@
 const path = require('path');
 const minimist = require('minimist');
 const klaw = require('klaw');
-const puppeteer = require('puppeteer');
 const config = require('../config.json');
-const { excludeDirFilter, includeJsonFilter, readJSON, writeJSON, getTracksFromChartList } = require('./helpers');
+const Scropple = require('./scropple-puppet');
+const { excludeDirFilter, includeFile, includeJsonFilter, readJSON, writeJSON } = require('./helpers');
 
-function scrapePage(browserPage, item) {
-    return new Promise((resolve) => {
-        const result = {
-            date: item.date,
-            success: [],
-            fail: [],
-        };
-
-        const gotoUrl = async (url) => {
-            try {
-                // TODO: logging should be done with events
-                console.log('Go to URL', url);
-                // Tell Puppeteer to go to the URL
-                await browserPage.goto(url);
-            } catch (err) {
-                console.log('Error requesting URL', url);
-                console.log(err);
-
-                // The URL failed to load so push the error message into result's
-                // fail array to be processed later on
-                result.fail.push({
-                    url,
-                    reason: err.message,
-                });
-
-                // Return and resolve the result... may have got some tracks or none
-                // depending on pagination
-                return resolve(result);
-            }
-
-            // Use a try/catch block as if no tracks an error is thrown by $eval
-            try {
-                // Query to see if there is a table of tracks and if so then
-                // extract the data we require
-                const tracks = await browserPage.$$eval('.chartlist .chartlist-row', getTracksFromChartList);
-                // Push the tracks into the result's success array
-                result.success.push({
-                    url,
-                    items: tracks,
-                });
-            } catch (err) {
-                // Ideally we should not reach this scenario but if there are no
-                // tracks we resolve the promise with the result
-                return resolve(result);
-            }
-
-            // Use a try/catch block as if no next link an error is thrown by $eval
-            try {
-                // Query to see if a next link exists, if so grab the href
-                const next = await browserPage.$eval('.pagination-next a', el => el.href);
-
-                // Go to the next page of results
-                return gotoUrl(next);
-            } catch (err) {
-                // Reached end of pagination as no next link
-                return resolve(result);
-            }
-        };
-
-        // Start the process of scraping
-        gotoUrl(item.url);
-    });
-}
-
-function* makeScraperIterator(browserPage, data) {
-    const pagesWithScrobbles = data.items.filter((item) => item.scrobbles !== 0);
-    for (let page of pagesWithScrobbles) {
-        yield scrapePage(browserPage, page);
+function* makeScraperIterator(scropple, items) {
+    let count = 0;
+    while (count < items.length) {
+        yield scropple.getChartlist(items[count]);
+        count++;
     }
 }
 
-async function* makeReadFileIterator(page, files) {
-    for (let file of files) {
-        const data = await readJSON(file);
-        yield* makeScraperIterator(page, data);
+async function* makeReadFileIterator(scropple, files) {
+    let count = 0;
+    while (count < files.length) {
+        const fileData = await readJSON(files[count]);
+        const items = fileData.items.filter((item) => item.scrobbles !== 0);
+        yield* makeScraperIterator(scropple, items);
+        count++;
     }
 }
 
-async function start(files) {
-    console.log(files);
-    const browser = await puppeteer.launch({ headless: true });
-    const browserPage = await browser.newPage();
-    const libraryPath = path.resolve(__dirname, '..', 'data', config.username);
+async function readYears(files) {
+    const scropple = new Scropple(config);
+    const generator = makeReadFileIterator(scropple, files);
 
-    await browserPage.setRequestInterception(true);
-
-    browserPage.on('request', (request) => {
-        if (request.resourceType() === 'document') {
-            request.continue();
-        } else {
-            request.abort();
-        }
-    });
-
-    const generator = makeReadFileIterator(browserPage, files);
     let failedRequests = [];
 
     for await (let result of generator) {
         if (result.fail.length > 0) {
-            // Bug: fix this
-            failedRequests.push(...request.fail);
+            failedRequests = failedRequests.concat(result.fail);
         }
 
         if (result.success.length > 0) {
@@ -114,41 +40,45 @@ async function start(files) {
             }, []);
             const datestamp = new Date(result.date);
             const year = datestamp.getFullYear().toString();
-            const month = datestamp.getMonth().toString();
+            const month = (datestamp.getMonth() + 1).toString();
             const date = datestamp.getDate().toString();
-            const outputPath = path.resolve(libraryPath, year, month, `${date}.json`);
-            const outputData = {
+            const fileData = {
                 created_at: new Date().toJSON(),
                 date: result.date,
                 items,
             };
-            console.log('Write data to', outputPath);
-            await writeJSON(outputPath, outputData);
+            await scropple.saveDate(year, month, date, fileData);
         }
     }
 
-    const now = (Date.now() / 1000).toString();
-    const errorLogPath = path.resolve(__dirname, '..', `error-${now}.json`);
+    const now = Date.now().toString();
+    const errorLogPath = path.resolve(__dirname, '..', `errors-${now}.json`);
     await writeJSON(errorLogPath, { failedRequests });
 
-    await browser.close();
-    process.exit(0);
+    await scropple.exit();
 }
 
-async function main() {
-    const parsedArgs = minimist(process.argv);
+async function start(year, month) {
+    const userPath = path.resolve(__dirname, '..', 'data', config.username);
+    let dataPath;
 
-    if (!parsedArgs.year) {
+    if (!year) {
         console.log('You must specify a year');
-        process.exit(1);
+        return;
     }
 
-    const dataPath = path.resolve(__dirname, '..', 'data', config.username, parsedArgs.year.toString());
+    if (year && month) {
+        dataPath = path.resolve(userPath, year.toString(), month.toString());
+    } else {
+        dataPath = path.resolve(userPath, year.toString());
+    }
+
     const files = [];
 
     klaw(dataPath)
         .pipe(excludeDirFilter)
         .pipe(includeJsonFilter)
+        .pipe(includeFile('index.json'))
         .on('readable', function () {
             let file;
             // eslint-disable-next-line no-cond-assign
@@ -157,10 +87,17 @@ async function main() {
             }
         })
         .on('end', () => {
-            start(files);
+            // console.log(files);
+            readYears(files);
         });
 }
 
 if (module === require.main) {
-    main();
+    const { year, month } = minimist(process.argv);
+
+    start(year, month);
+
+    process.on('unhandledRejection', (err) => {
+        console.log(err);
+    });
 }

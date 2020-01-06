@@ -2,35 +2,6 @@ const fs = require('fs');
 const path = require('path');
 const through2 = require('through2');
 
-// An idea:
-// Would this be better with a zip approach as could use browser to request the
-// name, artist and timestap individually in three arrays. Then merge those arrays
-// into an array of objects with properties from the source arrays. As long as each
-// array is the same length.
-
-// elements [HTMLCollection]
-function getTracksFromChartList(elements) {
-    return new Promise((resolve) => {
-        const data = Array.from(elements).map((row) => {
-            const $name = row.querySelector('.chartlist-name a');
-            const $artist = row.querySelector('.chartlist-artist a');
-            const $timestamp = row.querySelector('.chartlist-timestamp span');
-
-            return {
-                name: $name.textContent,
-                url: $name.href,
-                artist: {
-                    name: $artist.textContent,
-                    url: $artist.href,
-                },
-                timestamp: $timestamp.title,
-            };
-        });
-
-        resolve(data);
-    });
-}
-
 async function readJSON(filePath) {
     let result;
 
@@ -120,7 +91,6 @@ module.exports = {
     includeFile,
     includeJsonFilter,
     isNil,
-    getTracksFromChartList,
     readJSON,
     writeJSON,
     zip,

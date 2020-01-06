@@ -1,6 +1,6 @@
 const path = require('path');
 const puppeteer = require('puppeteer');
-const { getListeningHistoryScrobbles } = require('./page-functions');
+const { getTracksFromChartlist, getListeningHistoryScrobbles } = require('./page-functions');
 const { readJSON, writeJSON } = require('./helpers');
 const libraryUrl = 'https://www.last.fm/user/<username>/library?date_preset=ALL';
 
@@ -20,12 +20,6 @@ class Scropple {
 
     get libraryUrl() {
         return libraryUrl.replace(/<username>/, this.username);
-    }
-
-    get yearsPath() {
-        if (this.username) {
-            return ['data', this.username, 'years.json']
-        }
     }
 
     set browser(browser) {
@@ -104,6 +98,48 @@ class Scropple {
         await this.page.close();
 
         return new Promise((resolve) => resolve(result));
+    }
+
+    async getChartlist(page) {
+        const result = {
+            date: page.date,
+            success: [],
+            fail: [],
+        };
+
+        await this.newPage();
+
+        const gotoUrl = async (url, next) => {
+            try {
+                await this.page.goto(url);
+                const tracks = await this.page.$$eval(this.__config.selectors.chartlist_table_row, getTracksFromChartlist);
+
+                result.success.push({
+                    url,
+                    items: tracks,
+                });
+            } catch (err) {
+                console.log('Error requesting URL', url);
+                console.log(err);
+
+                result.fail.push({
+                    url,
+                    reason: err.message,
+                });
+            }
+
+            try {
+                const nextUrl = await this.page.$eval(this.__config.selectors.pagination_next, el => el.href);
+                return gotoUrl(nextUrl, next);
+            } catch (err) {
+                await this.page.close();
+                return next(result);
+            }
+        };
+
+        return new Promise((resolve) => {
+            gotoUrl(page.url, resolve)
+        });
     }
 
     async getLibrary() {
@@ -198,6 +234,17 @@ class Scropple {
 
     async saveMonth(year, month, data) {
         const filePath = path.resolve(__dirname, '..', 'data', this.username, year, month, 'index.json');
+        try {
+            console.log('Write to file %s', filePath);
+            await writeJSON(filePath, data);
+        } catch (err) {
+            console.log('Unable to write to %s', filePath);
+            console.log(err.stack);
+        }
+    }
+
+    async saveDate(year, month, date, data) {
+        const filePath = path.resolve(__dirname, '..', 'data', this.username, year, month, `${date}.json`);
         try {
             console.log('Write to file %s', filePath);
             await writeJSON(filePath, data);
