@@ -1,13 +1,13 @@
 {
-  "name": "scrobbles",
+  "name": "scropple-puppet",
   "version": "1.0.0",
-  "description": "",
+  "description": "A tool to scrape your scrobbles from Last.fm using Puppeteer",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
-  "author": "",
+  "author": "Ian Huntington",
   "license": "ISC",
   "dependencies": {
     "klaw": "^3.0.0",
